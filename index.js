@@ -1,9 +1,10 @@
 //-------------------------------------------------------------------------------------------------Discord API
 
+const request = require("request");
 const Discord = require("discord.js");
 const allIntents = new Discord.Intents(32767);
 const client = new Discord.Client({ intents: allIntents });
-const fs = require('fs')
+const fs = require("fs");
 
 
 //-------------------------------------------------------------------------------------------------PostgreSQL API
@@ -78,8 +79,10 @@ const interactiveImageNSFW = new Map([
 const interactiveFunctions = new Map([
     ["describe", ""],
     ["help", ""],
+    ["helpall", ""],
     ["horny", ""],
     ["ping", ""],
+    ["submit", ""],
     ["spam", ""]
 ]);
 
@@ -392,4 +395,34 @@ function horny() {
 function dailydosemiku(message) {
     var file = mediaSelector("./images/dailydosemiku/");
     message.channel.send({ content: "This is YOUR daily dose of miku!", files: [file] });
+}
+
+//---------------------------------------------------------------------submit
+
+async function submit(message) {
+    try {
+        var url;
+        if (message.attachments.size > 0) {
+            url = message.attachments.first().url;
+        } else {
+            url = message.content.slice(prefix.length).split(/[ ,]+/)[1];
+        }
+        console.log(url);
+        request.head(url, function(err, res, body) {
+            console.log('content-type:', res.headers['content-type']);
+            console.log('content-length:', res.headers['content-length']);
+            var ending = "." + res.headers['content-type'].split("/")[1];
+            for (var i = 0; i < fileEndings.length; i++) {
+                if (ending == fileEndings[i]) {
+                    var path = "./images/dailydosemikupending/" + message.author + "." + message.createdTimestamp + ending;
+                    request(url).pipe(fs.createWriteStream(path));
+                    message.channel.send("Thanks for submitting!");
+                    return 0;
+                }
+            }
+            message.channel.send("Filetype not accepted or to big!");
+        });
+    } catch (e) {
+        message.channel.send("Error!");
+    }
 }
