@@ -13,7 +13,7 @@ const fs = require('fs')
 
 require("dotenv").config();
 const botName = "Miku";
-const renameName = "FuckPutin"; //should be around 10 Characters Never go over lenghth 30
+const renameName = "MikuSlave"; //should be around 10 Characters Never go over lenghth 30
 const mainServer = "606567664852402188";
 const prefix = "!";
 
@@ -54,7 +54,7 @@ const interactiveImageLinksSFW = [
     "pain",
     "rob",
     "spank"
-]
+];
 
 const interactiveImageLinksNSFW = [
     "anal",
@@ -73,7 +73,21 @@ const interactiveImageLinksNSFW = [
     "pussy",
     "sex",
     "titjob"
-]
+];
+
+const interactiveFunctions = [
+    "define",
+    "help",
+    "ping",
+    "spam"
+];
+
+const interactiveOwnerFunctions = [
+    "define",
+    "help",
+    "ping",
+    "spam"
+];
 
 //-------------------------------------------------------------------------------------------------Boot
 
@@ -91,7 +105,7 @@ client.on("messageCreate", (message) => {
     //---------------------------------------------------------------------Logs Messages
 
     if (message.channel.type == "GUILD_TEXT") {
-        console.log(message.guild.name + " " + message.author.tag + ": " + message.content);
+        console.log(message.guild.name + ": " + message.author.tag + ": " + message.content);
     } else {
         console.log(message.author.tag + ": " + message.content);
     }
@@ -107,7 +121,7 @@ client.on("messageCreate", (message) => {
         message.channel.send(
             "Miku only works inside a server!\n" +
             "Invite me to your server OwO\n\n" +
-            "https://discord.com/api/oauth2/authorize?client_id=782328525071056918&permissions=8&scope=bot", { files: ["images/SFW/cute/4.jpg"] }
+            "https://discord.com/api/oauth2/authorize?client_id=782328525071056918&permissions=8&scope=bot"
         );
         return 0;
     }
@@ -118,7 +132,7 @@ client.on("messageCreate", (message) => {
         if (message.content.toLowerCase().includes(slurWords[i])) {
             message.delete();
             message.channel.send("You fucking racist go kys! :D");
-            console.log("Deleted message for being racist");
+            console.log("Deleted message for being racist from: " + message.author);
         }
     }
 
@@ -147,26 +161,41 @@ client.on("messageCreate", (message) => {
         const command = message.content.slice(prefix.length).toLowerCase();
         const commandSplitted = command.split(/[ ,]+/);
 
-        //---------------------------------------------------------------------Interactive Commands SFW + NSFW
+        //---------------------------------------------------------------------Interactive Image Commands SFW + NSFW
 
         for (var i = 0; i < interactiveImageLinksSFW.length; i++) {
             if (commandSplitted[0] == interactiveImageLinksSFW[i]) {
-                message.channel.send("test", { files: [{ attachment: ".images/SFW/hug/1.gif", name: "1.gif" }] });
+                message.channel.send("test", {
+                    files: [mediaSelector("./images/SFW/" + commandSplitted[0] + "/")]
+                });
+                return 0;
             }
         }
 
         for (var i = 0; i < interactiveImageLinksNSFW.length; i++) {
-            if (message.channel.nsfw) {
-                if (commandSplitted[0] == interactiveImageLinksNSFW[i]) {
-                    message.channel.send("test", { files: [mediaSelector("./images/NSFW/" + commandSplitted[0] + "/")] });
+            if (commandSplitted[0] == interactiveImageLinksNSFW[i]) {
+                if (message.channel.nsfw) {
+                    message.channel.send({
+                        files: [mediaSelector("./images/NSFW/" + commandSplitted[0] + "/")]
+                    });
+                    return 0;
+                } else {
+                    message.channel.send("No NSFW allowed here!");
+                    return 0;
                 }
-            } else {
-                message.channel.send("No NSFW allowed here!");
+            }
+        }
+
+        //---------------------------------------------------------------------Interactive Function Commands 
+
+        for (var i = 0; i < interactiveFunctions.length; i++) {
+            if (commandSplitted[0] == interactiveFunctions[i]) {
+                message.channel.send(eval(commandSplitted[0] + "(message,commandSplitted);"));
+                return 0;
             }
         }
     }
 });
-
 
 //-------------------------------------------------------------------------------------------------Client Login
 
@@ -219,14 +248,13 @@ async function replyWithInvite(message) {
                 .then((invite) => {
                     message.channel.send(
                         invite ?
-                        `Here's your invite: ${invite}` :
+                        `Here is your invite: ${invite}` :
                         "There has been an error during the creation of the invite."
                     );
                 });
         } else {
             console.log("There has been an error during the creation of the invite.")
         }
-
     });
 }
 
@@ -253,7 +281,9 @@ function mediaSelector(path) {
     for (var i = 0; i < fileEndings.length; i++) {
         cache += fileEndingsLengths[i];
         if (cache > luckyNumber) {
-            return (path + Math.floor(Math.random() * fileEndingsLengths[i]) + fileEndings[i]);
+            var fileNumber = Math.floor(Math.random() * fileEndingsLengths[i]);
+            return new Discord.MessageAttachment((path + fileNumber + fileEndings[i]),
+                fileNumber + fileEndings[i]);
         }
     }
 }
@@ -266,4 +296,59 @@ function tryCatch(tryFunction) {
     } catch (e) {
         console.log("Error occured on " + tryFunction.name + ":\n" + e);
     }
+}
+
+//---------------------------------------------------------------------help
+
+const helpArray = new Map([
+    [interactiveImageLinksSFW, "SFW image"],
+    [interactiveImageLinksNSFW, "NSFW image"],
+    [interactiveFunctions, "Function"]
+]);
+
+function help(message) {
+    var returnMessage = "> These are all command for " + botName + ": \n";
+    for (var a = 0; a < helpArray.size; a++) {
+        returnMessage += "\n> All " + helpArray.get(Array.from(helpArray.keys())[a]) + " commands:\n"
+        for (var i = 0; i < Array.from(helpArray.keys())[a].length; i++) {
+            returnMessage += "> " + Array.from(helpArray.keys())[a][i] + "\n";
+        }
+    }
+    return returnMessage;
+}
+
+//---------------------------------------------------------------------ping
+
+function ping(message) {
+    var delay = 0;
+    message.channel.send("Delay is: 0ms").then(m => {
+        delay = m.createdTimestamp - message.createdTimestamp;
+        m.edit("Delay is: " + delay + "ms");
+    });
+    return "> 🏓 pong!";
+}
+
+//---------------------------------------------------------------------describe function
+
+function define(message) {
+    const commandSplitted = message.content.slice(prefix.length).split(/[ ,]+/);
+    try {
+        return "```javascript\n" + eval(commandSplitted[1] + ".toString().replace(/`/g, '´')") + "```";
+    } catch (e) {
+        return "Error!";
+    }
+}
+
+//---------------------------------------------------------------------spam
+
+function spam(message) {
+    var spamThis = message.content.slice(prefix.length + 4);
+    if (spamThis.length == 0) {
+        return "Error!";
+    }
+    var out = "";
+    while (out.length + spamThis.length < 2000) {
+        out += spamThis;
+    }
+    return out;
 }
