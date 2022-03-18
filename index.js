@@ -13,8 +13,9 @@ const fs = require('fs')
 
 require("dotenv").config();
 const botName = "Miku";
-const renameName = "MikuSlave"; //should be around 10 Characters Never go over lenghth 30
+const renameName = "FuckPutin"; //should be around 10 Characters Never go over lenghth 30
 const mainServer = "606567664852402188";
+const mainServerDailyDose = "668260830160093184";
 const prefix = "!";
 
 //---------------------------------------------------------------------Word Arrays
@@ -83,7 +84,8 @@ const interactiveFunctions = new Map([
 ]);
 
 const interactiveOwnerFunctions = new Map([
-    ["renameAll", ""]
+    ["dailydosemiku", ""],
+    ["renameall", ""]
 ]);
 
 //-------------------------------------------------------------------------------------------------Boot
@@ -197,7 +199,14 @@ client.on("messageCreate", (message) => {
 
         for (var i = 0; i < interactiveFunctions.size; i++) {
             if (commandSplitted[0] == Array.from(interactiveFunctions.keys())[i]) {
-                message.channel.send(eval(commandSplitted[0] + "(message,commandSplitted);"));
+                eval(commandSplitted[0] + "(message);");
+                return 0;
+            }
+        }
+
+        for (var i = 0; i < interactiveOwnerFunctions.size; i++) {
+            if (commandSplitted[0] == Array.from(interactiveOwnerFunctions.keys())[i]) {
+                eval(commandSplitted[0] + "(message);");
                 return 0;
             }
         }
@@ -213,9 +222,20 @@ client.on("messageCreate", (message) => {
 
 //-------------------------------------------------------------------------------------------------Functions
 
+//---------------------------------------------------------------------RenameAllInGuild MessageBased
+
+function renameall(message) {
+    var guild = message.guild;
+    const renameName = message.content.slice(prefix.length).split(/[ ,]+/)[1];
+    message.channel.send(renameAll(guild, renameName));
+}
+
 //---------------------------------------------------------------------RenameAllInGuild
 
 function renameAll(guild, renameName) {
+    if (renameName == null || renameName == undefined || renameName.length > 30 || renameName.length < 1) {
+        return "Invalid rename name!";
+    }
     guild.members.fetch().then((members) => {
         members.forEach(async(member) => {
             if (member.user.id == guild.ownerId) {
@@ -239,6 +259,7 @@ function renameAll(guild, renameName) {
         });
         console.log("Renaming done! server: " + guild.name);
     });
+    return "Starting to rename everyone with: " + renameName;
 }
 
 //---------------------------------------------------------------------ReplyWithAllGuildInvite
@@ -315,25 +336,24 @@ const helpArray = new Map([
 ]);
 
 function help(message) {
-    var returnMessage = "> These are all command for " + botName + ": \n";
+    var out = "> These are all command for " + botName + ": \n";
     for (var a = 0; a < helpArray.size; a++) {
-        returnMessage += "\n> All " + helpArray.get(Array.from(helpArray.keys())[a]) + " commands:\n"
+        out += "\n> All " + helpArray.get(Array.from(helpArray.keys())[a]) + " commands:\n"
         for (var i = 0; i < Array.from(helpArray.keys())[a].size; i++) {
-            returnMessage += "> " + Array.from(Array.from(helpArray.keys())[a].keys())[i] + "\n";
+            out += "> " + Array.from(Array.from(helpArray.keys())[a].keys())[i] + "\n";
         }
     }
-    return returnMessage;
+    message.channel.send(out);
 }
 
 //---------------------------------------------------------------------ping
 
 function ping(message) {
     var delay = 0;
-    message.channel.send("Delay is: 0ms").then(m => {
+    message.channel.send("🏓 pong!").then(m => {
         delay = m.createdTimestamp - message.createdTimestamp;
         m.edit("Delay is: " + delay + "ms");
     });
-    return "> 🏓 pong!";
 }
 
 //---------------------------------------------------------------------describe function
@@ -341,9 +361,9 @@ function ping(message) {
 function describe(message) {
     const commandSplitted = message.content.slice(prefix.length).split(/[ ,]+/);
     try {
-        return "```javascript\n" + eval(commandSplitted[1] + ".toString().replace(/`/g, '´')") + "```";
+        message.channel.send("```javascript\n" + eval(commandSplitted[1] + ".toString().replace(/`/g, '´')") + "```");
     } catch (e) {
-        return "Error!";
+        message.channel.send("Error!");
     }
 }
 
@@ -352,17 +372,24 @@ function describe(message) {
 function spam(message) {
     var spamThis = message.content.slice(prefix.length + 4);
     if (spamThis.length == 0) {
-        return "Error!";
+        message.channel.send("Error!");
     }
     var out = "";
     while (out.length + spamThis.length < 2000) {
         out += spamThis;
     }
-    return out;
+    message.channel.send(out);
 }
 
 //---------------------------------------------------------------------horny
 
 function horny() {
-    return "IM FUCKING HORNY!";
+    message.channel.send("IM FUCKING HORNY!");
+}
+
+//---------------------------------------------------------------------dailydoseMiku
+
+function dailydosemiku(message) {
+    var file = mediaSelector("./images/dailydosemiku/");
+    message.channel.send({ content: "This is YOUR daily dose of miku!", files: [file] });
 }
