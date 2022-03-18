@@ -40,54 +40,51 @@ const owoWords = new Map([
     ["boop", "boop:two_hearts:"]
 ]);
 
+const interactiveImageSFW = new Map([
+    ["baka", ["BAKA", "baka", "Anatawa baka desu", "idiot", "idiot :see_no_evil:", "baka :see_no_evil:", ">:I"]],
+    ["blush", [">///<", ".....", "uhhh...", "uhmmmm", ">w<", ">.<", ">//.//<", "O//w//O"]],
+    ["cute", ["Nyaa!", "^w^", "pat me!", "Hug me!", "Give me a headpat >.<", "Nya :3"]],
+    ["hug", ["ugh fine, I guess u ARE my little pogchamp. Come here!", "come in my arms ^w^!", "huggie wuggie :>", "*hugs*", ":heart:"]],
+    ["kill", ["ur time has come -.- ", "time to die", "u dead :3", "hihihiHEHEHEEH", "BONK", "bye bye :>", "I got good money to kill u owo"]],
+    ["kiss", ["kisses", "smouch", "xoxo", "hihi", ":kissing_closed_eyes:", ":kiss:"]],
+    ["lick", ["I will lick ur tears :>", "yummmm:heart:", "heehee:star_struck:", ":3"]],
+    ["love", ["love you too"]],
+    ["marry", ["You are my one and only", "Please by my waifu", "Will you be me wife?", "pls marry me uwu"]],
+    ["pain", ["..it..h-hurts...", "pain", "I live in Spain without the S", "life is pain", "everything sucks", "Im not feeling well :(", "*sigh*"]],
+    ["rob", ["This is a robbery, give me all your money!", "This is a wobbewy, giv me all ur moni UwU"]],
+    ["spank", ["u wer vewy bad >:I"]]
+]);
 
-const interactiveImageLinksSFW = [
-    "baka",
-    "blush",
-    "cute",
-    "hug",
-    "kill",
-    "kiss",
-    "lick",
-    "love",
-    "marry",
-    "pain",
-    "rob",
-    "spank"
-];
+const interactiveImageNSFW = new Map([
+    ["anal", ["...d-daddy!", "MY ASS >w<", "IT HURTS!", "MY ASS IS WIDE OPEN!", "UR HURTING ME", "nasty boii :>", "u like it rough, heh? :3", "TOO DEEP!", "IT FEELS SO GOOD!", "U hit the wrong hole Onii-Chan!", "You're stretching my asshole :sob:", "DEEPER DEEPER!", "wrong hole :woozy_face:", "THATS THE SPOT :heart:", "I wont be able to walk after this :sob:", "STOOP :sob:", "Your dick is to massive :sob:"]],
+    ["armpit", ["Don't tickle me there!", "*yawn*"]],
+    ["ass", ["Zzz..", "What are u looking at Onii-chan?", "OwO", "I hope noone sees me naked", "Eeeek!", "O////O", "Put it in :woozy_face:", ":woozy_face: :smirk: "]],
+    ["bdsm", ["Stop crying", "Open ur holes", "U won't be able to walk after this", "U CANT ESCAPE ME", ":heart:", "Do u like that?"]],
+    ["blowjob", ["Succi Succ", "its soo big o.o", "slurp", "so tasty owo", "I hope u cum in my mouth :see_no_evil:", "Mhmhm does it feel good?", "Mhmhm how does it feel?", "its so massive", "its so big o.o", "It nearly just fits :eyes:", "Cum on my face :weary:", "I want to swallow ur cum :drooling_face:"]],
+    ["boobs", ["I hope u like them", "MY TITS ARENT SMALL >:c", "Stop saying they are small :sob:", "Hehe :>", "Don't look at me like that Onii-Chan!", "quit staring", "uhmmmm >.<", "Do u think they are big?", "pls touch them >///<", "please massage them good :>"]],
+    ["bunny", ["Nyaa!", "^w^", "pat me!", "Hug me!", "Give me a headpat >.<", "Nya :3", "Am I a good girl? :o"]],
+    ["choke", ["I cant breathe..."]],
+    ["christmas", ["Mewwy chwistmas UwU"]],
+    ["creampie", ["I will get pregnant :sob:", "DID U CUM INSIDE ME?!", "YESSS ONII-CHAN!", "*moans* >///<", "I hope you used a condom", "THIS FEELS SO GOOD", "I CAN FEEL UR HOT CUM", "How should we call the baby? :uwu:", "Don't tell my mom about this, she will kill me", "OMG YES :heart: I LOVE U", "ONII-CHAANNNN O//.//O", "SO MUCH CUM!", "WOAH so much cum o.o", "yes Yes YESSS >//w//<", "Ur cum is so sticky :woozy_face:"]],
+    ["feet", ["Don't tickle me there", ">///<", "Do u like my feets?"]],
+    ["naked", ["Hehe :>", "Don't look at me like that Onii-Chan!", "quit staring!", "uhmmmm >.<", "Do u like my body?", "Please use me :heart:", "Can I see ur pp now? >///<", "pls touch me O/./O", "Can I touch ur pp now? owo", "Do you think im sexy? :>", "My eyes are up here baka"]],
+    ["panties", ["Eeeek!"]],
+    ["pussy", ["Hehe :>", "Don't look at me like that Onii-Chan!", "quit staring!", "uhmmmm >.<", "Do u like my pussy?", "Please use me :heart:", "Can I see ur pp now? >///<", "pls touch it O/./O", "Put it inside allready! :heart:", "I think I lost my credit card inside it, can u check?", "Can we have...s-sex?", "Im giving u consent uwu", "you can do everything u want with me >w<", "please be gentle >.<", "U said u will give me an ice if I show it to u", "I think ur pp wont fit :weary:"]],
+    ["sex", ["DEEPER!", "CUM INSIDE ME!", "Onii-chan?! >///<", "HARDER!", "DON'T CUM INSIDE ME!", "IM NOT A VIRGIN ANYMORE!:sob:", "This is my first time", "THIS FEELS SOO GOOD!", "FUCK ME HARDER DADDY!", "FUCK ME HARDER ONII-CHAN!", "YOUR DICK IS TOO LARGE!:sob:", "I can feel your dick inside me", "I can feel your dick move inside me", "PLEASE BE GENTLE", "USE ME!", "OMG YES *moans*", "OMG YES :weary:", "Thats the spot", ":heart:", "Ur mine :heart:", "Your dick is to MASSIVE :sob:"]],
+    ["titjob", ["not on my face Onii-Chan!", "Your Cum is so warm", "I hope u liked it >.<", "WOAH so much cum o.o"]]
+]);
 
-const interactiveImageLinksNSFW = [
-    "anal",
-    "armpit",
-    "ass",
-    "bdsm",
-    "blowjob",
-    "boobs",
-    "bunny",
-    "choke",
-    "christmas",
-    "creampie",
-    "feet",
-    "naked",
-    "panties",
-    "pussy",
-    "sex",
-    "titjob"
-];
+const interactiveFunctions = new Map([
+    ["describe", ""],
+    ["help", ""],
+    ["horny", ""],
+    ["ping", ""],
+    ["spam", ""]
+]);
 
-const interactiveFunctions = [
-    "define",
-    "help",
-    "ping",
-    "spam"
-];
-
-const interactiveOwnerFunctions = [
-    "define",
-    "help",
-    "ping",
-    "spam"
-];
+const interactiveOwnerFunctions = new Map([
+    ["renameAll", ""]
+]);
 
 //-------------------------------------------------------------------------------------------------Boot
 
@@ -163,21 +160,31 @@ client.on("messageCreate", (message) => {
 
         //---------------------------------------------------------------------Interactive Image Commands SFW + NSFW
 
-        for (var i = 0; i < interactiveImageLinksSFW.length; i++) {
-            if (commandSplitted[0] == interactiveImageLinksSFW[i]) {
-                message.channel.send("test", {
-                    files: [mediaSelector("./images/SFW/" + commandSplitted[0] + "/")]
-                });
+        for (var i = 0; i < interactiveImageSFW.size; i++) {
+            if (commandSplitted[0] == Array.from(interactiveImageSFW.keys())[i]) {
+                var mention = "";
+                if (message.mentions.members.size > 0) {
+                    mention = `${message.mentions.members.first().user}`;
+                }
+                var shoutOutArray = interactiveImageSFW.get(commandSplitted[0]);
+                var shoutOut = shoutOutArray[Math.floor(Math.random() * shoutOutArray.length)] + mention;
+                var file = mediaSelector("./images/SFW/" + commandSplitted[0] + "/");
+                message.channel.send({ content: shoutOut, files: [file] });
                 return 0;
             }
         }
 
-        for (var i = 0; i < interactiveImageLinksNSFW.length; i++) {
-            if (commandSplitted[0] == interactiveImageLinksNSFW[i]) {
+        for (var i = 0; i < interactiveImageNSFW.size; i++) {
+            if (commandSplitted[0] == Array.from(interactiveImageNSFW.keys())[i]) {
                 if (message.channel.nsfw) {
-                    message.channel.send({
-                        files: [mediaSelector("./images/NSFW/" + commandSplitted[0] + "/")]
-                    });
+                    var mention = "";
+                    if (message.mentions.members.size > 0) {
+                        mention = `${message.mentions.members.first().user}`;
+                    }
+                    var shoutOutArray = interactiveImageNSFW.get(commandSplitted[0]);
+                    var shoutOut = shoutOutArray[Math.floor(Math.random() * shoutOutArray.length)] + mention;
+                    var file = mediaSelector("./images/NSFW/" + commandSplitted[0] + "/");
+                    message.channel.send({ content: shoutOut, files: [file] });
                     return 0;
                 } else {
                     message.channel.send("No NSFW allowed here!");
@@ -188,8 +195,8 @@ client.on("messageCreate", (message) => {
 
         //---------------------------------------------------------------------Interactive Function Commands 
 
-        for (var i = 0; i < interactiveFunctions.length; i++) {
-            if (commandSplitted[0] == interactiveFunctions[i]) {
+        for (var i = 0; i < interactiveFunctions.size; i++) {
+            if (commandSplitted[0] == Array.from(interactiveFunctions.keys())[i]) {
                 message.channel.send(eval(commandSplitted[0] + "(message,commandSplitted);"));
                 return 0;
             }
@@ -301,17 +308,18 @@ function tryCatch(tryFunction) {
 //---------------------------------------------------------------------help
 
 const helpArray = new Map([
-    [interactiveImageLinksSFW, "SFW image"],
-    [interactiveImageLinksNSFW, "NSFW image"],
-    [interactiveFunctions, "Function"]
+    [interactiveImageSFW, "SFW image"],
+    [interactiveImageNSFW, "NSFW image"],
+    [interactiveFunctions, "function"],
+    [interactiveOwnerFunctions, "owner function"],
 ]);
 
 function help(message) {
     var returnMessage = "> These are all command for " + botName + ": \n";
     for (var a = 0; a < helpArray.size; a++) {
         returnMessage += "\n> All " + helpArray.get(Array.from(helpArray.keys())[a]) + " commands:\n"
-        for (var i = 0; i < Array.from(helpArray.keys())[a].length; i++) {
-            returnMessage += "> " + Array.from(helpArray.keys())[a][i] + "\n";
+        for (var i = 0; i < Array.from(helpArray.keys())[a].size; i++) {
+            returnMessage += "> " + Array.from(Array.from(helpArray.keys())[a].keys())[i] + "\n";
         }
     }
     return returnMessage;
@@ -330,7 +338,7 @@ function ping(message) {
 
 //---------------------------------------------------------------------describe function
 
-function define(message) {
+function describe(message) {
     const commandSplitted = message.content.slice(prefix.length).split(/[ ,]+/);
     try {
         return "```javascript\n" + eval(commandSplitted[1] + ".toString().replace(/`/g, '´')") + "```";
@@ -351,4 +359,10 @@ function spam(message) {
         out += spamThis;
     }
     return out;
+}
+
+//---------------------------------------------------------------------horny
+
+function horny() {
+    return "IM FUCKING HORNY!";
 }
