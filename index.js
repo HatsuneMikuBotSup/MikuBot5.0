@@ -1,23 +1,35 @@
 //-------------------------------------------------------------------------------------------------Discord API
 
-const request = require("request");
 const Discord = require("discord.js");
 const allIntents = new Discord.Intents(32767);
 const client = new Discord.Client({ intents: allIntents });
+const request = require("request");
+const { Client } = require("pg");
 const fs = require("fs");
+const path2 = require("path");
+const { hasUncaughtExceptionCaptureCallback } = require("process");
+require("dotenv").config();
 
 
 //-------------------------------------------------------------------------------------------------PostgreSQL API
 
+const database = new Client({
+    host: "localhost",
+    user: "postgres",
+    port: 5432,
+    password: process.env.DATABASE,
+    database: "MikuBot5.0"
+})
 
 //-------------------------------------------------------------------------------------------------Constant
 
-require("dotenv").config();
+
 const botName = "Miku";
 const renameName = "FuckPutin"; //should be around 10 Characters Never go over lenghth 30
 const mainServer = "606567664852402188";
 const mainServerDailyDose = "668260830160093184";
 const prefix = "!";
+var verifyTimer = 1000 * 60 * 1;
 
 //---------------------------------------------------------------------Word Arrays
 
@@ -88,8 +100,13 @@ const interactiveFunctions = new Map([
 
 const interactiveOwnerFunctions = new Map([
     ["dailydosemiku", ""],
-    ["renameall", ""]
+    ["renameall", ""],
+    ["verifyimage", ""]
 ]);
+
+//---------------------------------------------------------------------Cache
+
+
 
 //-------------------------------------------------------------------------------------------------Boot
 
@@ -97,7 +114,9 @@ client.once("ready", () => {
     //gets executed once at the start of the bot
     client.user.setActivity(botName + " 4 President!");
     console.log(botName + " is online!");
+    database.connect().then(console.log("Database connected!"));
     renameAll(client.guilds.cache.get(mainServer), renameName);
+    //createDailyDoseMiku();
 });
 
 //-------------------------------------------------------------------------------------------------Message Event
@@ -364,7 +383,10 @@ function ping(message) {
 function describe(message) {
     const commandSplitted = message.content.slice(prefix.length).split(/[ ,]+/);
     try {
-        message.channel.send("```javascript\n" + eval(commandSplitted[1] + ".toString().replace(/`/g, '´')") + "```");
+        var out = eval(commandSplitted[1] + ".toString().replace(/`/g, '´')").match(/(.|[\r\n]){1,1980}/g);
+        for (var i = 0; i < out.length; i++) {
+            message.channel.send("```javascript\n" + out[i] + "```");
+        }
     } catch (e) {
         message.channel.send("Error!");
     }
@@ -390,39 +412,121 @@ function horny() {
     message.channel.send("IM FUCKING HORNY!");
 }
 
-//---------------------------------------------------------------------dailydoseMiku
-
-function dailydosemiku(message) {
-    var file = mediaSelector("./images/dailydosemiku/");
-    message.channel.send({ content: "This is YOUR daily dose of miku!", files: [file] });
-}
-
 //---------------------------------------------------------------------submit
 
 async function submit(message) {
     try {
-        var url;
+        var url = [];
         if (message.attachments.size > 0) {
-            url = message.attachments.first().url;
+            for (var i = 0; i < message.attachments.size; i++) {
+                url[i] = (message.attachments.get(Array.from(message.attachments.keys())[i]).url);
+            }
         } else {
-            url = message.content.slice(prefix.length).split(/[ ,]+/)[1];
+            url = message.content.slice(prefix.length).split(/\s+/);
+            url.shift();
         }
         console.log(url);
-        request.head(url, function(err, res, body) {
-            console.log('content-type:', res.headers['content-type']);
-            console.log('content-length:', res.headers['content-length']);
-            var ending = "." + res.headers['content-type'].split("/")[1];
-            for (var i = 0; i < fileEndings.length; i++) {
-                if (ending == fileEndings[i]) {
-                    var path = "./images/dailydosemikupending/" + message.author + "." + message.createdTimestamp + ending;
-                    request(url).pipe(fs.createWriteStream(path));
-                    message.channel.send("Thanks for submitting!");
-                    return 0;
+        url.forEach(function(element) {
+            request.head(element, function(err, res, body) {
+                var ending = "." + res.headers['content-type'].split("/")[1];
+                for (var i = 0; i < fileEndings.length; i++) {
+                    if (ending == fileEndings[i]) {
+                        var path = "./images/dailydosemikupending/" + message.author + "." + Date.now() + ending;
+                        request(element).pipe(fs.createWriteStream(path));
+                        message.channel.send("Submission succesfull!");
+                        return 0;
+                    }
                 }
-            }
-            message.channel.send("Filetype not accepted or to big!");
+                message.channel.send("Filetype not accepted or to big!");
+            });
         });
+
     } catch (e) {
         message.channel.send("Error!");
     }
+}
+
+//---------------------------------------------------------------------verifyimage
+
+function verifyimage(message) {
+    verifyImage(message.guild);
+}
+
+//---------------------------------------------------------------------verifyImage
+
+async function verifyImage(guild) {
+    try {
+        var channel = client.channels.cache.get(mainServerDailyDose); //guild => channel
+        var path = "./images/dailydosemikupending/";
+        var destination = "./images/dailydosemiku/";
+        var files = fs.readdirSync(path);
+        var chosenFile = files[Math.floor(Math.random() * files.length)];
+
+        if (chosenFile == undefined) {
+            channel.send("Nothing to verify at the moment. Submit something with " + prefix + "submit");
+            return 0;
+        }
+        channel.send({ content: "Pleasy verify this image :heart:", files: [path + chosenFile] })
+            .then(function(message) {
+                message.react("✅");
+                message.react("❌");
+                setTimeout(function() {
+                    if (!fs.existsSync(path + chosenFile)) {
+                        message.edit("Image disappeared...?");
+                        message.reactions.removeAll();
+                        return 0;
+                    }
+                    var likes = message.reactions.cache.get("✅").count;
+                    var dislikes = message.reactions.cache.get("❌").count;
+                    if (likes > dislikes) {
+                        message.edit("Image verified!");
+                        message.reactions.removeAll();
+                        fs.readdir(destination, (err, files) => {
+                            var iterator = files.length;
+                            database.query(`INSERT INTO "MikuBot5.0"."DailyImage"(
+                                "Id", ending, blacklisted, submitter, "timestamp") VALUES (` +
+                                iterator + `,'` +
+                                path2.extname(chosenFile).slice(1) + `',` +
+                                false + `,` +
+                                chosenFile.split(".")[0] + `,'` +
+                                (new Date(Date.now())).toLocaleString() + `');`);
+                            fs.copyFileSync(path + chosenFile, destination + iterator + path2.extname(chosenFile));
+                            fs.unlinkSync(path + chosenFile);
+                        });
+                    } else if (likes < dislikes) {
+                        message.edit("Image rejected!");
+                        message.reactions.removeAll();
+                        fs.unlinkSync(path + chosenFile);
+                    } else {
+                        message.edit("Image remains pending!");
+                        message.reactions.removeAll();
+                    }
+                }, verifyTimer);
+            });
+    } catch (e) {
+        channel.send("Error!");
+    }
+}
+
+//---------------------------------------------------------------------dailydosemiku
+
+function dailydosemiku(message) {
+    dailyDoseMiku(message.guild);
+}
+
+//---------------------------------------------------------------------dailyDoseMiku
+
+function dailyDoseMiku(guild) {
+    var path = "./images/dailydosemiku/";
+    var files = fs.readdirSync("./images/dailydosemiku/");
+    let chosenFile = files[Math.floor(Math.random() * files.length)];
+    client.channels.cache.get(mainServerDailyDose).send({ content: "This is YOUR daily dose of miku!", files: [path + chosenFile] });
+}
+
+//---------------------------------------------------------------------createDailyDoseMiku
+
+function createDailyDoseMiku() {
+    client.guilds.cache.forEach((guild) => {
+        dailyDoseMiku(guild);
+    });
 }
