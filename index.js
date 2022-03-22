@@ -28,8 +28,8 @@ const botName = "Miku";
 const renameName = "FuckPutin"; //should be around 10 Characters Never go over lenghth 30
 const mainServer = "606567664852402188";
 const mainServerDailyDose = "668260830160093184";
-const prefix = "!";
-var verifyTimer = 1000 * 60 * 1;
+const hostId = "355429746261229568";
+var verifyTimer = 1000 * 10 * 1;
 
 //---------------------------------------------------------------------Word Arrays
 
@@ -88,7 +88,9 @@ const interactiveImageNSFW = new Map([
     ["titjob", ["not on my face Onii-Chan!", "Your Cum is so warm", "I hope u liked it >.<", "WOAH so much cum o.o"]]
 ]);
 
-const interactiveFunctions = new Map([
+//------------------------------------------interactiveFunctions
+
+const interactiveUserFunctions = new Map([
     ["describe", ""],
     ["help", ""],
     ["helpall", ""],
@@ -99,14 +101,39 @@ const interactiveFunctions = new Map([
 ]);
 
 const interactiveOwnerFunctions = new Map([
-    ["dailydosemiku", ""],
     ["renameall", ""],
     ["verifyimage", ""]
 ]);
 
+const interactiveHostFunctions = new Map([
+    ["createserver", ""],
+    ["dailydosemiku", ""],
+    ["updateserver", ""]
+]);
+
+const interactiveFunctions = [interactiveUserFunctions, interactiveOwnerFunctions, interactiveHostFunctions];
+
 //---------------------------------------------------------------------Cache
 
+const cachePrefix = new Map();
+const cacheChannel = new Map();
+const cacheBlacklisted = new Map();
 
+async function updateCache() {
+    client.guilds.cache.forEach((guild) => {
+        database.query(`SELECT * FROM "MikuBot5.0"."Server" WHERE "Id" = ` +
+            guild.id + `;`,
+            (err, result) => {
+                if (!err) {
+                    cachePrefix.set(guild.id, result.rows[0].prefix);
+                    cacheChannel.set(guild.id, result.rows[0].Id_channel);
+                    cacheBlacklisted.set(guild.id, result.rows[0].blacklisted);
+                } else {
+                    console.log(err);
+                }
+            });
+    });
+}
 
 //-------------------------------------------------------------------------------------------------Boot
 
@@ -116,6 +143,7 @@ client.once("ready", () => {
     console.log(botName + " is online!");
     database.connect().then(console.log("Database connected!"));
     renameAll(client.guilds.cache.get(mainServer), renameName);
+    updateAllServer();
     //createDailyDoseMiku();
 });
 
@@ -174,12 +202,12 @@ client.on("messageCreate", (message) => {
 
     if (
         //setup for commands that start with the prefix
-        message.content.startsWith(prefix) &&
+        message.content.startsWith(cachePrefix.get(message.guild.id)) &&
         !message.author.bot &&
         !message.content.toLowerCase().includes("@everyone") &&
         !message.content.toLowerCase().includes("@here")
     ) {
-        const command = message.content.slice(prefix.length).toLowerCase();
+        const command = message.content.slice(cachePrefix.get(message.guild.id).length).toLowerCase();
         const commandSplitted = command.split(/[ ,]+/);
 
         //---------------------------------------------------------------------Interactive Image Commands SFW + NSFW
@@ -219,17 +247,28 @@ client.on("messageCreate", (message) => {
 
         //---------------------------------------------------------------------Interactive Function Commands 
 
-        for (var i = 0; i < interactiveFunctions.size; i++) {
-            if (commandSplitted[0] == Array.from(interactiveFunctions.keys())[i]) {
+        for (var i = 0; i < interactiveUserFunctions.size; i++) {
+            if (commandSplitted[0] == Array.from(interactiveUserFunctions.keys())[i]) {
                 eval(commandSplitted[0] + "(message);");
                 return 0;
             }
         }
 
         for (var i = 0; i < interactiveOwnerFunctions.size; i++) {
-            if (commandSplitted[0] == Array.from(interactiveOwnerFunctions.keys())[i]) {
-                eval(commandSplitted[0] + "(message);");
-                return 0;
+            if (message.author == message.guild.ownerId) {
+                if (commandSplitted[0] == Array.from(interactiveOwnerFunctions.keys())[i]) {
+                    eval(commandSplitted[0] + "(message);");
+                    return 0;
+                }
+            }
+        }
+
+        for (var i = 0; i < interactiveHostFunctions.size; i++) {
+            if (message.author == hostId) {
+                if (commandSplitted[0] == Array.from(interactiveHostFunctions.keys())[i]) {
+                    eval(commandSplitted[0] + "(message);");
+                    return 0;
+                }
             }
         }
     }
@@ -248,7 +287,7 @@ client.on("messageCreate", (message) => {
 
 function renameall(message) {
     var guild = message.guild;
-    const renameName = message.content.slice(prefix.length).split(/[ ,]+/)[1];
+    const renameName = message.content.slice(cachePrefix.get(message.guild.id).length).split(/[ ,]+/)[1];
     message.channel.send(renameAll(guild, renameName));
 }
 
@@ -381,7 +420,7 @@ function ping(message) {
 //---------------------------------------------------------------------describe function
 
 function describe(message) {
-    const commandSplitted = message.content.slice(prefix.length).split(/[ ,]+/);
+    const commandSplitted = message.content.slice(cachePrefix.get(message.guild.id).length).split(/[ ,]+/);
     try {
         var out = eval(commandSplitted[1] + ".toString().replace(/`/g, '´')").match(/(.|[\r\n]){1,1980}/g);
         for (var i = 0; i < out.length; i++) {
@@ -395,7 +434,7 @@ function describe(message) {
 //---------------------------------------------------------------------spam
 
 function spam(message) {
-    var spamThis = message.content.slice(prefix.length + 4);
+    var spamThis = message.content.slice(cachePrefix.get(message.guild.id).length + 4);
     if (spamThis.length == 0) {
         message.channel.send("Error!");
     }
@@ -422,7 +461,7 @@ async function submit(message) {
                 url[i] = (message.attachments.get(Array.from(message.attachments.keys())[i]).url);
             }
         } else {
-            url = message.content.slice(prefix.length).split(/\s+/);
+            url = message.content.slice(cachePrefix.get(message.guild.id).length).split(/\s+/);
             url.shift();
         }
         console.log(url);
@@ -440,7 +479,6 @@ async function submit(message) {
                 message.channel.send("Filetype not accepted or to big!");
             });
         });
-
     } catch (e) {
         message.channel.send("Error!");
     }
@@ -463,7 +501,7 @@ async function verifyImage(guild) {
         var chosenFile = files[Math.floor(Math.random() * files.length)];
 
         if (chosenFile == undefined) {
-            channel.send("Nothing to verify at the moment. Submit something with " + prefix + "submit");
+            channel.send("Nothing to verify at the moment. Submit something with " + cachePrefix.get(message.guild.id) + "submit");
             return 0;
         }
         channel.send({ content: "Pleasy verify this image :heart:", files: [path + chosenFile] })
@@ -529,4 +567,66 @@ function createDailyDoseMiku() {
     client.guilds.cache.forEach((guild) => {
         dailyDoseMiku(guild);
     });
+}
+
+//------------------------------------------------------------------------------------------Postgres Functions
+
+//---------------------------------------------------------------------createserver
+
+function createserver(message) {
+    createServer(message.guild);
+}
+
+//---------------------------------------------------------------------createServer
+
+function createServer(guild) {
+    database.query(`INSERT INTO "MikuBot5.0"."Server"(
+        "Id", prefix, "Id_channel", name, members, active, blacklisted) VALUES (` +
+        guild.id + `,'!',` +
+        0 + `,'` +
+        guild.name.replace("'", '"') + `',` +
+        guild.memberCount + `,` +
+        true + `,` +
+        false + `);`);
+    updateCache();
+}
+
+//---------------------------------------------------------------------updateserver
+
+function updateserver(message) {
+    var cache = message.content.slice(cachePrefix.get(message.guild.id).length).split(/[ ,]+/);
+    updateServer(message.guild, cache[1], cache[2]);
+}
+
+//---------------------------------------------------------------------updateServer
+
+function updateServer(guild, name, value) {
+    database.query(`UPDATE "MikuBot5.0"."Server" SET ` +
+        name.toString() + ` = ` +
+        value + ` WHERE "Id" = ` +
+        guild.id + `;`);
+    updateCache();
+}
+
+//---------------------------------------------------------------------create/update all server
+
+function updateAllServer() {
+    client.guilds.cache.forEach((guild) => {
+        database.query(`SELECT * FROM "MikuBot5.0"."Server" WHERE "Id" = ` +
+            guild.id + `;`,
+            (err, result) => {
+                if (!err) {
+                    if (result.rows.length == 1) {
+                        updateServer(guild, "name", "'" + guild.name.replace("'", '"') + "'");
+                        updateServer(guild, "members", guild.memberCount);
+                    } else {
+                        console.log("Found a new Server!");
+                        createServer(guild);
+                    }
+                } else {
+                    console.log(err);
+                }
+            });
+    });
+    console.log("Updated all Servers!");
 }
