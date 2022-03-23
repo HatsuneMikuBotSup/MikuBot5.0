@@ -1,0 +1,13 @@
+help
+helpall
+setup
+
+on dm messsage
+
+-------------------------------------
+count all likes
+daily weekly monthly best image
+
+image flag report dump blacklist
+
+server blacklist
