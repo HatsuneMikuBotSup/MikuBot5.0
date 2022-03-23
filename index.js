@@ -127,23 +127,33 @@ async function updateCache() {
                     cachePrefix.set(guild.id, result.rows[0].prefix);
                     cacheChannel.set(guild.id, result.rows[0].Id_channel);
                     cacheBlacklisted.set(guild.id, result.rows[0].blacklisted);
+                    return 0;
                 } else {
                     console.log(err);
+                    return 0;
                 }
             });
     });
 }
 
+function bootCache() {
+    client.guilds.cache.forEach((guild) => {
+        cachePrefix.set(guild.id, '!');
+        cacheChannel.set(guild.id, 0);
+        cacheBlacklisted.set(guild.id, false);
+        return 0;
+    });
+}
+
 //-------------------------------------------------------------------------------------------------Boot
 
-client.once("ready", () => {
+client.once("ready", async() => {
     //gets executed once at the start of the bot
     client.user.setActivity(botName + " 4 President!");
     console.log(botName + " is online!");
     database.connect().then(console.log("Database connected!"));
-    renameAll(client.guilds.cache.get(mainServer), renameName);
-    updateAllServer();
-    //createDailyDoseMiku();
+    bootCache();
+    cycle();
 });
 
 //-------------------------------------------------------------------------------------------------On Message Event 
@@ -288,19 +298,13 @@ client.on("guildCreate", async(guild) => {
     updateAllServer();
 });
 
-//-------------------------------------------------------------------------------------------------Client Login
-
-(async() => {
-    //bot connects with Discord api
-    client.login(process.env.TOKEN);
-})();
-
 //-------------------------------------------------------------------------------------------------time Manager
 
-var offsetMinutes = 60 - new Date().getMinutes();
-var offsetHours = 12 - new Date().getHours();
-if (offsetHours > 12) {
-    offsetHours = offsetHours - 12;
+var offsetMinutes = 59 - new Date().getMinutes();
+//var offsetHours = 11 - new Date().getHours();
+var offsetHours = 0;
+if (offsetHours < 0) {
+    offsetHours = offsetHours + 12;
 }
 var offset = (1000 * 60 * offsetMinutes) + (1000 * 60 * 60 * offsetHours);
 console.log("Offset is: " + offset + "ms or " + offsetHours + "h" + offsetMinutes + "m");
@@ -309,11 +313,12 @@ setTimeout(function() {
     cycle();
     setInterval(function() {
         cycle();
-    }, 1000 * 60 * 60 * 12);
+    }, 1000 * 60 * 60 * 1);
 }, offset);
 
-function cycle() {
-    updateAllServer();
+async function cycle() {
+    var waiting = await updateAllServer();
+    fetchUpdateDailyMessage();
     createDailyDoseMiku();
     renameAll(client.guilds.cache.get(mainServer), renameName);
 }
@@ -600,17 +605,32 @@ async function verifyImage(guild) {
 //---------------------------------------------------------------------dailydosemiku
 
 function dailydosemiku(message) {
-    dailyDoseMiku(message.guild);
+    createDailyDoseMiku();
 }
 
 //---------------------------------------------------------------------dailyDoseMiku
 
-function dailyDoseMiku(guild) {
+function dailyDoseMikuPost(guild) {
     var path = "./images/dailydosemiku/";
-    var files = fs.readdirSync("./images/dailydosemiku/");
-    let chosenFile = files[Math.floor(Math.random() * files.length)];
     if (cacheChannel.get(guild.id) != 0) {
-        client.channels.cache.get(cacheChannel.get(guild.id)).send({ content: "This is YOUR daily dose of miku!", files: [path + chosenFile] });
+        database.query(`SELECT "Id", ending FROM "MikuBot5.0"."DailyImage" WHERE blacklisted = false;`, (err, result) => {
+            if (!err) {
+                var chosenFile = Math.floor(Math.random() * result.rows.length);
+                console.log(result.rows[chosenFile].Id, result.rows[chosenFile].ending);
+                client.channels.cache.get(cacheChannel.get(guild.id)).send({
+                    content: "This is YOUR hourly dose of miku!",
+                    files: [path + result.rows[chosenFile].Id + "." + result.rows[chosenFile].ending]
+                }).then(message => {
+                    message.react("👍");
+                    message.react("👎");
+                    message.react("🚩");
+                    createDailyMessage(message);
+                    createDailyPost(message, result.rows[chosenFile].Id);
+                });
+            } else {
+                console.log(err);
+            }
+        });
     }
 }
 
@@ -618,7 +638,7 @@ function dailyDoseMiku(guild) {
 
 function createDailyDoseMiku() {
     client.guilds.cache.forEach((guild) => {
-        dailyDoseMiku(guild);
+        dailyDoseMikuPost(guild);
     });
 }
 
@@ -664,7 +684,7 @@ function updateServer(guild, name, value) {
 
 //---------------------------------------------------------------------create/update all server
 
-function updateAllServer() {
+async function updateAllServer() {
     client.guilds.cache.forEach((guild) => {
         database.query(`SELECT * FROM "MikuBot5.0"."Server" WHERE "Id" = ` +
             guild.id + `;`,
@@ -683,6 +703,7 @@ function updateAllServer() {
             });
     });
     console.log("Updated all Servers!");
+    return 0;
 }
 
 //---------------------------------------------------------------------changeChannel
@@ -697,3 +718,66 @@ function changeChannel(guild, channel) {
     updateServer(guild, '"Id_channel"', channel.id);
     return "Miku channel set to: <#" + channel.id + ">";
 }
+
+//---------------------------------------------------------------------createDailyMessage
+
+function createDailyMessage(message) {
+    database.query(`INSERT INTO "MikuBot5.0"."DailyMessage"(
+        "Id", "Likes", "Dislikes", "Flags") VALUES (` +
+        message.id + `,` +
+        0 + `,` +
+        0 + `,` +
+        0 + `);`);
+}
+
+//---------------------------------------------------------------------updateDailyMessage
+
+function updateDailyMessage(message) {
+    database.query(`UPDATE "MikuBot5.0"."DailyMessage"` +
+        ` SET "Likes" = ` + (message.reactions.cache.get("👍").count - 1) +
+        ` , "Dislikes" = ` + (message.reactions.cache.get("👎").count - 1) +
+        ` , "Flags" = ` + (message.reactions.cache.get("🚩").count - 1) +
+        ` WHERE "Id" = ` + message.id + `;`);
+}
+
+//---------------------------------------------------------------------fetchUpdateDailyMessage
+
+function fetchUpdateDailyMessage() {
+    client.guilds.cache.forEach((guild) => {
+        if (cacheChannel.get(guild.id) != 0) {
+            var channel = client.channels.cache.get(cacheChannel.get(guild.id));
+            channel.messages.fetch({ limit: 100 }).then((messages) => {
+                messages.forEach((message) => {
+                    database.query(`SELECT * FROM "MikuBot5.0"."DailyMessage" WHERE "Id" = ` + message.id + `;`,
+                        (err, result) => {
+                            if (!err) {
+                                if (result.rows.length > 0) {
+                                    updateDailyMessage(message);
+                                }
+                            } else {
+                                console.log(err);
+                            }
+                        });
+                });
+            });
+        }
+    });
+}
+
+
+
+//---------------------------------------------------------------------createDailyPost
+
+function createDailyPost(message, imageId) {
+    database.query(`INSERT INTO "MikuBot5.0"."DailyPosted"(
+        "ImageId", "MessageId") VALUES (` +
+        imageId + `,` +
+        message.id + `);`);
+}
+
+//-------------------------------------------------------------------------------------------------Client Login
+
+(async() => {
+    //bot connects with Discord api
+    client.login(process.env.TOKEN);
+})();
