@@ -25,7 +25,7 @@ const database = new Client({
 
 
 const botName = "Miku";
-const renameName = "FuckPutin"; //should be around 10 Characters Never go over lenghth 30
+var renameName = "FuckPutin"; //should be around 10 Characters Never go over lenghth 30
 const mainServer = "606567664852402188";
 const mainServerDailyDose = "668260830160093184";
 const hostId = "355429746261229568";
@@ -97,18 +97,17 @@ const interactiveUserFunctions = new Map([
     ["horny", ""],
     ["ping", ""],
     ["submit", ""],
-    ["spam", ""]
-]);
-
-const interactiveOwnerFunctions = new Map([
-    ["renameall", ""],
+    ["spam", ""],
     ["verifyimage", ""]
 ]);
 
+const interactiveOwnerFunctions = new Map([
+    ["changechannel", ""],
+    ["renameall", ""]
+]);
+
 const interactiveHostFunctions = new Map([
-    ["createserver", ""],
-    ["dailydosemiku", ""],
-    ["updateserver", ""]
+    ["dailydosemiku", ""]
 ]);
 
 const interactiveFunctions = [interactiveUserFunctions, interactiveOwnerFunctions, interactiveHostFunctions];
@@ -147,7 +146,7 @@ client.once("ready", () => {
     //createDailyDoseMiku();
 });
 
-//-------------------------------------------------------------------------------------------------Message Event
+//-------------------------------------------------------------------------------------------------On Message Event 
 
 client.on("messageCreate", (message) => {
 
@@ -198,9 +197,11 @@ client.on("messageCreate", (message) => {
             message.channel.send(response);
         }
     }
+
     //---------------------------------------------------------------------Command Setup
 
     if (
+
         //setup for commands that start with the prefix
         message.content.startsWith(cachePrefix.get(message.guild.id)) &&
         !message.author.bot &&
@@ -274,12 +275,48 @@ client.on("messageCreate", (message) => {
     }
 });
 
+//-------------------------------------------------------------------------------------------------On Member join event
+
+client.on("guildMemberAdd", async(member) => {});
+
+//-------------------------------------------------------------------------------------------------On Server join event
+
+client.on("guildCreate", async(guild) => {
+    console.log("I joined a new server: " + guild.name);
+    var file = mediaSelector("./images/SFW/cute/");
+    guild.systemChannel.send({ content: "Thanks for inviting me OwO\nYou can set me up with !setup", files: [file] });
+    updateAllServer();
+});
+
 //-------------------------------------------------------------------------------------------------Client Login
 
 (async() => {
     //bot connects with Discord api
     client.login(process.env.TOKEN);
 })();
+
+//-------------------------------------------------------------------------------------------------time Manager
+
+var offsetMinutes = 60 - new Date().getMinutes();
+var offsetHours = 12 - new Date().getHours();
+if (offsetHours > 12) {
+    offsetHours = offsetHours - 12;
+}
+var offset = (1000 * 60 * offsetMinutes) + (1000 * 60 * 60 * offsetHours);
+console.log("Offset is: " + offset + "ms or " + offsetHours + "h" + offsetMinutes + "m");
+
+setTimeout(function() {
+    cycle();
+    setInterval(function() {
+        cycle();
+    }, 1000 * 60 * 60 * 12);
+}, offset);
+
+function cycle() {
+    updateAllServer();
+    createDailyDoseMiku();
+    renameAll(client.guilds.cache.get(mainServer), renameName);
+}
 
 //-------------------------------------------------------------------------------------------------Functions
 
@@ -454,33 +491,47 @@ function horny() {
 //---------------------------------------------------------------------submit
 
 async function submit(message) {
-    try {
-        var url = [];
-        if (message.attachments.size > 0) {
-            for (var i = 0; i < message.attachments.size; i++) {
-                url[i] = (message.attachments.get(Array.from(message.attachments.keys())[i]).url);
-            }
-        } else {
-            url = message.content.slice(cachePrefix.get(message.guild.id).length).split(/\s+/);
-            url.shift();
+    var url = [];
+    if (message.attachments.size > 0) {
+        for (var i = 0; i < message.attachments.size; i++) {
+            url[i] = (message.attachments.get(Array.from(message.attachments.keys())[i]).url);
         }
+    } else {
+        url = message.content.slice(cachePrefix.get(message.guild.id).length).split(/\s+/);
+        url.shift();
+    }
+    message.channel.send(await submitUrl(url, message.author));
+}
+//---------------------------------------------------------------------submitUrl
+
+async function submitUrl(url, author) {
+    try {
         console.log(url);
+        var masterflag = "";
         url.forEach(function(element) {
             request.head(element, function(err, res, body) {
                 var ending = "." + res.headers['content-type'].split("/")[1];
+                var flag = true;
                 for (var i = 0; i < fileEndings.length; i++) {
                     if (ending == fileEndings[i]) {
-                        var path = "./images/dailydosemikupending/" + message.author + "." + Date.now() + ending;
+                        var path = "./images/dailydosemikupending/" + author + "." + Date.now() + ending;
                         request(element).pipe(fs.createWriteStream(path));
-                        message.channel.send("Submission succesfull!");
-                        return 0;
+                        flag = false;
                     }
                 }
-                message.channel.send("Filetype not accepted or to big!");
+                if (flag) {
+                    masterflag += url + "\n";
+                }
             });
         });
+        if (masterflag.length == 0) {
+            return "Submission succesfull!";
+
+        } else {
+            var out = "Submission only partly succesfull! Errors on:\n" + masterflag
+        }
     } catch (e) {
-        message.channel.send("Error!");
+        return "Error!";
     }
 }
 
@@ -558,7 +609,9 @@ function dailyDoseMiku(guild) {
     var path = "./images/dailydosemiku/";
     var files = fs.readdirSync("./images/dailydosemiku/");
     let chosenFile = files[Math.floor(Math.random() * files.length)];
-    client.channels.cache.get(mainServerDailyDose).send({ content: "This is YOUR daily dose of miku!", files: [path + chosenFile] });
+    if (cacheChannel.get(guild.id) != 0) {
+        client.channels.cache.get(cacheChannel.get(guild.id)).send({ content: "This is YOUR daily dose of miku!", files: [path + chosenFile] });
+    }
 }
 
 //---------------------------------------------------------------------createDailyDoseMiku
@@ -580,11 +633,12 @@ function createserver(message) {
 //---------------------------------------------------------------------createServer
 
 function createServer(guild) {
+    console.log(guild.name.replace(/'/g, '"'));
     database.query(`INSERT INTO "MikuBot5.0"."Server"(
         "Id", prefix, "Id_channel", name, members, active, blacklisted) VALUES (` +
         guild.id + `,'!',` +
-        0 + `,'` +
-        guild.name.replace("'", '"') + `',` +
+        guild.systemChannel + `,'` +
+        guild.name.replace(/'/g, '"') + `',` +
         guild.memberCount + `,` +
         true + `,` +
         false + `);`);
@@ -617,7 +671,7 @@ function updateAllServer() {
             (err, result) => {
                 if (!err) {
                     if (result.rows.length == 1) {
-                        updateServer(guild, "name", "'" + guild.name.replace("'", '"') + "'");
+                        updateServer(guild, "name", "'" + guild.name.replace(/'/g, '"') + "'");
                         updateServer(guild, "members", guild.memberCount);
                     } else {
                         console.log("Found a new Server!");
@@ -629,4 +683,17 @@ function updateAllServer() {
             });
     });
     console.log("Updated all Servers!");
+}
+
+//---------------------------------------------------------------------changeChannel
+
+function changechannel(message) {
+    message.channel.send(changeChannel(message.guild, message.channel));
+}
+
+//---------------------------------------------------------------------changechannel
+
+function changeChannel(guild, channel) {
+    updateServer(guild, '"Id_channel"', channel.id);
+    return "Miku channel set to: <#" + channel.id + ">";
 }
