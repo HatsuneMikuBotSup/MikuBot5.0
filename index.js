@@ -29,7 +29,7 @@ var renameName = "FuckPutin"; //should be around 10 Characters Never go over len
 const mainServer = "606567664852402188";
 const mainServerDailyDose = "668260830160093184";
 const hostId = "355429746261229568";
-var verifyTimer = 1000 * 10 * 1;
+var verifyTimer = 1000 * 60 * 60;
 
 //---------------------------------------------------------------------Word Arrays
 
@@ -107,7 +107,8 @@ const interactiveOwnerFunctions = new Map([
 ]);
 
 const interactiveHostFunctions = new Map([
-    ["dailydosemiku", ""]
+    ["dailydosemiku", ""],
+    ["replywithinvite", ""]
 ]);
 
 const interactiveFunctions = [interactiveUserFunctions, interactiveOwnerFunctions, interactiveHostFunctions];
@@ -124,10 +125,17 @@ async function updateCache() {
             guild.id + `;`,
             (err, result) => {
                 if (!err) {
-                    cachePrefix.set(guild.id, result.rows[0].prefix);
-                    cacheChannel.set(guild.id, result.rows[0].Id_channel);
-                    cacheBlacklisted.set(guild.id, result.rows[0].blacklisted);
-                    return 0;
+                    if (result.rows[0] != undefined) {
+                        cachePrefix.set(guild.id, result.rows[0].prefix);
+                        cacheChannel.set(guild.id, result.rows[0].Id_channel);
+                        cacheBlacklisted.set(guild.id, result.rows[0].blacklisted);
+                        return 0;
+                    } else {
+                        cachePrefix.set(guild.id, '!');
+                        cacheChannel.set(guild.id, 0);
+                        cacheBlacklisted.set(guild.id, false);
+                        return 0;
+                    }
                 } else {
                     console.log(err);
                     return 0;
@@ -196,17 +204,16 @@ client.on("messageCreate", (message) => {
 
     //---------------------------------------------------------------------OwO UwU responses
 
-    if (true) {
-        var response = "";
-        for (var i = 0; i < owoWords.size; i++) {
-            if (message.content.toLowerCase().includes(Array.from(owoWords.keys())[i])) {
-                response += owoWords.get(Array.from(owoWords.keys())[i]) + " ";
-            }
-        }
-        if (response != "") {
-            message.channel.send(response);
+    var response = "";
+    for (var i = 0; i < owoWords.size; i++) {
+        if (message.content.toLowerCase().includes(Array.from(owoWords.keys())[i])) {
+            response += owoWords.get(Array.from(owoWords.keys())[i]) + " ";
         }
     }
+    if (response != "") {
+        message.channel.send(response);
+    }
+
 
     //---------------------------------------------------------------------Command Setup
 
@@ -301,8 +308,7 @@ client.on("guildCreate", async(guild) => {
 //-------------------------------------------------------------------------------------------------time Manager
 
 var offsetMinutes = 59 - new Date().getMinutes();
-//var offsetHours = 11 - new Date().getHours();
-var offsetHours = 0;
+var offsetHours = 11 - new Date().getHours();
 if (offsetHours < 0) {
     offsetHours = offsetHours + 12;
 }
@@ -313,7 +319,7 @@ setTimeout(function() {
     cycle();
     setInterval(function() {
         cycle();
-    }, 1000 * 60 * 60 * 1);
+    }, 1000 * 60 * 60 * 12);
 }, offset);
 
 async function cycle() {
@@ -321,6 +327,8 @@ async function cycle() {
     fetchUpdateDailyMessage();
     createDailyDoseMiku();
     renameAll(client.guilds.cache.get(mainServer), renameName);
+    createVerifyImage();
+    checkActive();
 }
 
 //-------------------------------------------------------------------------------------------------Functions
@@ -367,7 +375,7 @@ function renameAll(guild, renameName) {
 
 //---------------------------------------------------------------------ReplyWithAllGuildInvite
 
-async function replyWithInvite(message) {
+async function replywithinvite(message) {
     client.guilds.cache.forEach((guild) => {
         if (guild.available) {
             console.log(guild.name + " : " + guild.memberCount);
@@ -550,7 +558,10 @@ function verifyimage(message) {
 
 async function verifyImage(guild) {
     try {
-        var channel = client.channels.cache.get(mainServerDailyDose); //guild => channel
+        var channel = client.channels.cache.get(cacheChannel.get(guild.id)); //guild => channel
+        if (channel == undefined) {
+            return 0;
+        }
         var path = "./images/dailydosemikupending/";
         var destination = "./images/dailydosemiku/";
         var files = fs.readdirSync(path);
@@ -602,6 +613,14 @@ async function verifyImage(guild) {
     }
 }
 
+//---------------------------------------------------------------------createVerifyImage
+
+function createVerifyImage() {
+    client.guilds.cache.forEach((guild) => {
+        verifyImage(guild);
+    });
+}
+
 //---------------------------------------------------------------------dailydosemiku
 
 function dailydosemiku(message) {
@@ -618,7 +637,7 @@ function dailyDoseMikuPost(guild) {
                 var chosenFile = Math.floor(Math.random() * result.rows.length);
                 console.log(result.rows[chosenFile].Id, result.rows[chosenFile].ending);
                 client.channels.cache.get(cacheChannel.get(guild.id)).send({
-                    content: "This is YOUR hourly dose of miku!",
+                    content: "This is YOUR daily dose of miku!",
                     files: [path + result.rows[chosenFile].Id + "." + result.rows[chosenFile].ending]
                 }).then(message => {
                     message.react("👍");
@@ -652,12 +671,17 @@ function createserver(message) {
 
 //---------------------------------------------------------------------createServer
 
-function createServer(guild) {
+async function createServer(guild) {
     console.log(guild.name.replace(/'/g, '"'));
-    database.query(`INSERT INTO "MikuBot5.0"."Server"(
+    var mikuChannel = guild.systemChannel;
+    if (mikuChannel == null) {
+        mikuChannel = 0;
+    }
+
+    await database.query(`INSERT INTO "MikuBot5.0"."Server"(
         "Id", prefix, "Id_channel", name, members, active, blacklisted) VALUES (` +
         guild.id + `,'!',` +
-        guild.systemChannel + `,'` +
+        mikuChannel + `,'` +
         guild.name.replace(/'/g, '"') + `',` +
         guild.memberCount + `,` +
         true + `,` +
@@ -774,6 +798,18 @@ function createDailyPost(message, imageId) {
         imageId + `,` +
         message.id + `);`);
 }
+
+//---------------------------------------------------------------------checkActive
+
+function checkActive() {
+    database.query(`UPDATE "MikuBot5.0"."Server" SET active =  false;`);
+
+    client.guilds.cache.forEach((guild) => {
+        updateServer(guild, "active", true);
+    });
+}
+
+
 
 //-------------------------------------------------------------------------------------------------Client Login
 
