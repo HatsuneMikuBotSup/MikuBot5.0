@@ -25,7 +25,7 @@ const database = new Client({
 
 
 const botName = "Miku";
-var renameName = "FuckPutin"; //should be around 10 Characters Never go over lenghth 30
+var renameName = "Horny"; //should be around 10 Characters Never go over lenghth 30
 const mainServer = "606567664852402188";
 const mainServerDailyDose = "668260830160093184";
 const hostId = "355429746261229568";
@@ -519,6 +519,9 @@ async function submit(message) {
 
 async function submitUrl(url, author) {
     try {
+        if (url.length == 0) {
+            return "no image or url!";
+        }
         console.log(url);
         var masterflag = "";
         url.forEach(function(element) {
@@ -733,7 +736,9 @@ async function updateAllServer() {
 //---------------------------------------------------------------------changeChannel
 
 function changechannel(message) {
-    message.channel.send(changeChannel(message.guild, message.channel));
+    message.channel.send(changeChannel(message.guild, message.channel) +
+        "\nUpvote:thumbsup:  Downvote:thumbsdown:  Report:triangular_flag_on_post: | Submit Miku NSFW with !submit | Verify Miku NSFW with !verifyImage");
+    updateCache();
 }
 
 //---------------------------------------------------------------------changechannel
